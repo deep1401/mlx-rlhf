@@ -22,7 +22,6 @@ from typing import Callable, List, Optional, Union
 import wandb
 
 import torch.optim as optim
-import torch.nn as nn
 import torch
 
 import numpy as np

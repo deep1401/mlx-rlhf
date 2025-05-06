@@ -2,13 +2,11 @@
 #
 # Copyright © 2023 Apple Inc.
 import os
-import argparse
 import time
 from data.data_utils import load_datasets, build_parser
 
 import matplotlib.pyplot as plt
 
-import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import torch

@@ -2,7 +2,7 @@
 Created by Andrew Silva on 5/11/2024
 """
 import mlx.core as mx
-from utils import get_model_and_tokenizer, load
+from utils import get_model_and_tokenizer
 import argparse
 
 if __name__ == "__main__":

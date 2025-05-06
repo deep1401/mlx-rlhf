@@ -40,10 +40,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--hf-path",
-        help=(
-            "Path to the original Hugging Face model. This is "
-            "required for upload if --model is a local directory."
-        ),
+        help=("Path to the original Hugging Face model. This is required for upload if --model is a local directory."),
         type=str,
         default=None,
     )
@@ -71,18 +68,14 @@ if __name__ == "__main__":
 
     # Freeze all layers other than LORA linears
     model.freeze()
-    for l in model.model.layers[len(model.model.layers) - lora_layers :]:
+    for l in model.model.layers[len(model.model.layers) - lora_layers :]:  # noqa
         l.self_attn.q_proj = LoRALinear.from_linear(l.self_attn.q_proj)
         l.self_attn.v_proj = LoRALinear.from_linear(l.self_attn.v_proj)
         if hasattr(l, "block_sparse_moe"):
             l.block_sparse_moe.gate = LoRALinear.from_linear(l.block_sparse_moe.gate)
 
     model.update(tree_unflatten(adapters))
-    fused_linears = [
-        (n, m.to_linear())
-        for n, m in model.named_modules()
-        if isinstance(m, LoRALinear)
-    ]
+    fused_linears = [(n, m.to_linear()) for n, m in model.named_modules() if isinstance(m, LoRALinear)]
 
     model.update_modules(tree_unflatten(fused_linears))
 
@@ -119,7 +112,5 @@ if __name__ == "__main__":
             # If the model path doesn't exist, assume it's an HF repo
             hf_path = args.model
         elif hf_path is None:
-            raise ValueError(
-                "Must provide original Hugging Face repo to upload local model."
-            )
+            raise ValueError("Must provide original Hugging Face repo to upload local model.")
         utils.upload_to_hub(args.save_path, args.upload_name, hf_path)

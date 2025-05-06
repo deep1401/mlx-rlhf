@@ -26,15 +26,11 @@ import numpy as np
 import mlx.core as mx
 import mlx.nn as nn
 import mlx.optimizers as optim
-from mlx_lm import generate
 
 from models.base import create_reference_model
 
 from transformers import (
     DataCollatorForLanguageModeling,
-    PreTrainedTokenizer,
-    PreTrainedTokenizerBase,
-    PreTrainedTokenizerFast,
 )
 
 from utils import RunningMoments, stats_to_np, set_seed, generate_ids, \

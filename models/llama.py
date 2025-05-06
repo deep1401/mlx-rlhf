@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple, Union
-import math
 
 import mlx.core as mx
 import mlx.nn as nn
@@ -29,14 +28,12 @@ class ModelArgs(BaseModelArgs):
         if self.rope_scaling:
             required_keys = {"factor", "type"}
             if "type" not in self.rope_scaling:
-                self.rope_scaling['type'] = self.rope_scaling.get("rope_type")
+                self.rope_scaling["type"] = self.rope_scaling.get("rope_type")
             if not all(key in self.rope_scaling for key in required_keys):
                 raise ValueError(f"rope_scaling must contain keys {required_keys}")
 
             # if self.rope_scaling["type"] != "linear":
             #     raise ValueError("rope_scaling 'type' currently only supports 'linear'")
-
-
 
 
 class Attention(nn.Module):
@@ -152,9 +149,7 @@ class LlamaModel(nn.Module):
         self.num_hidden_layers = args.num_hidden_layers
         assert self.vocab_size > 0
         self.embed_tokens = nn.Embedding(args.vocab_size, args.hidden_size)
-        self.layers = [
-            TransformerBlock(args=args) for _ in range(args.num_hidden_layers)
-        ]
+        self.layers = [TransformerBlock(args=args) for _ in range(args.num_hidden_layers)]
         self.norm = nn.RMSNorm(args.hidden_size, eps=args.rms_norm_eps)
 
     def __call__(
@@ -233,7 +228,7 @@ class Model(nn.Module):
         # First we process the prompt x the same was as in __call__ but
         # save the caches in cache
         x = self.model.embed_tokens(x)
-        for l in self.model.layers:
+        for l in self.model.layers:  # noqa: E741
             x, c = l(x, mask=mask)
             # We store the per layer cache in a simple python list
             cache.append(c)

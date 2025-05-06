@@ -1,7 +1,6 @@
 import random
 from pathlib import Path
 import json
-import os
 from data.imessage_chat_data import get_all_txts
 from random import shuffle
 import argparse
@@ -23,7 +22,7 @@ class TuningDataset:
             self._data = None
         else:
             with open(path, "r") as fid:
-                self._data = [json.loads(l) for l in fid]
+                self._data = [json.loads(l) for l in fid]  # noqa: E741
         self._key = key
 
     def __getitem__(self, idx: int):
@@ -44,7 +43,7 @@ class PrefDataset:
             self._data = None
         else:
             with open(path, "r") as fid:
-                self._data = [json.loads(l) for l in fid]
+                self._data = [json.loads(l) for l in fid]  # noqa: E741
         self._key = key
         self._reward_key = reward_key
 
@@ -64,12 +63,13 @@ class CustomHFDataset:
     Each item returns a tuple: (prompt, ground_truth)
     Supports loading from local JSONL or HuggingFace Hub.
     """
+
     def __init__(self, path):
         self._data = []
         path_obj = Path(path)
         if path_obj.exists():
-            with open(path, 'r') as fid:
-                self._data = json.load(fid)
+            with open(path, "r") as fid:
+                self._data = [json.loads(line) for line in fid]
 
         else:
             if load_dataset is None:
@@ -104,7 +104,7 @@ def load_datasets(train_args, tokenizer=None):
     ds_base = train_args.data_base
     ds_names = (f"{ds_base}train", f"{ds_base}valid", f"{ds_base}test")
     train_data, valid, test = [], [], []
-    if 'chat' in ds_base:
+    if "chat" in ds_base:
         # To do me-chatbot, use 'chat' as data-base and '/path/to/your/message_data' as data
         # TODO: Add command line args for the chunk-length and prior-context-length
         all_data = get_all_txts(
@@ -151,9 +151,7 @@ def build_parser():
         default=100,
         help="The maximum number of tokens to generate",
     )
-    arg_parse.add_argument(
-        "--temp", type=float, default=0.8, help="The sampling temperature"
-    )
+    arg_parse.add_argument("--temp", type=float, default=0.8, help="The sampling temperature")
     arg_parse.add_argument(
         "--prompt",
         "-p",
@@ -168,11 +166,7 @@ def build_parser():
         action="store_true",
         help="Do training",
     )
-    arg_parse.add_argument(
-        "--reward-model",
-        action="store_true",
-        help="Train a reward model instead of a SFT model"
-    )
+    arg_parse.add_argument("--reward-model", action="store_true", help="Train a reward model instead of a SFT model")
     arg_parse.add_argument(
         "--prompt-tuning",
         action="store_true",
@@ -203,18 +197,14 @@ def build_parser():
         help="Number of layers to fine-tune",
     )
     arg_parse.add_argument("--batch-size", type=int, default=4, help="Minibatch size.")
-    arg_parse.add_argument(
-        "--iters", type=int, default=1000, help="Iterations to train for."
-    )
+    arg_parse.add_argument("--iters", type=int, default=1000, help="Iterations to train for.")
     arg_parse.add_argument(
         "--val-batches",
         type=int,
         default=25,
         help="Number of validation batches, -1 uses the entire validation set.",
     )
-    arg_parse.add_argument(
-        "--learning-rate", type=float, default=1e-6, help="Adam learning rate."
-    )
+    arg_parse.add_argument("--learning-rate", type=float, default=1e-6, help="Adam learning rate.")
     arg_parse.add_argument(
         "--steps-per-report",
         type=int,

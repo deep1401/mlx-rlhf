@@ -1,7 +1,6 @@
 from digit_seq_rewards import RewardFunction, generate_synthetic_data
 import argparse
 import random
-import json
 
 """
 python generate_digit_data.py --increasing --multiple-of 2 --num-samples 150

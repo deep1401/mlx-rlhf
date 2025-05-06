@@ -13,10 +13,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import json
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal, Optional
 
 import numpy as np
@@ -98,6 +97,8 @@ class PPOConfig:
     """Number of samples per optimisation step"""
     mini_batch_size: int = 4
     """Number of samples optimized in each mini batch"""
+    max_completion_length: int = 256
+    """Maximum number of tokens to generate for each prompt"""
     gradient_accumulation_steps: int = 1
     """The number of gradient accumulation steps"""
     ppo_epochs: int = 4

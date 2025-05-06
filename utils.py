@@ -4,7 +4,7 @@ import glob
 import json
 import logging
 from pathlib import Path
-from typing import Generator, Dict, Mapping, List, Tuple, Optional
+from typing import Dict, Mapping, List
 import random
 
 import mlx.core as mx
@@ -16,7 +16,6 @@ from mlx_lm.tuner.lora import LoRALinear, LoRASwitchLinear
 from mlx_lm.models.switch_layers import QuantizedSwitchLinear, SwitchLinear
 from mlx_lm.tuner.utils import linear_to_lora_layers as mlx_lm_linear_to_lora
 from mlx_lm.utils import load as mlx_lm_load_model
-from mlx_lm.utils import load_model
 from mlx_lm.utils import quantize_model
 
 from models.prompt_tuning import PromptTuning
@@ -61,7 +60,7 @@ class RunningMoments:
 
         new_sum = xs_var * xs_count
         # correct old_sum deviation accounting for the new mean
-        old_sum = self.var * self.count + delta ** 2 * self.count * xs_count / tot_count
+        old_sum = self.var * self.count + delta**2 * self.count * xs_count / tot_count
         tot_sum = old_sum + new_sum
 
         self.mean += delta * xs_count / tot_count
@@ -144,8 +143,7 @@ def logprobs_from_logits(logits: mx.array, labels: mx.array, gather: bool = True
     if not gather:
         return logp
 
-    logpy = mx.take_along_axis(logp,
-                               labels[:, :, None], axis=2).squeeze(-1)
+    logpy = mx.take_along_axis(logp, labels[:, :, None], axis=2).squeeze(-1)
     return logpy
 
 
@@ -170,7 +168,7 @@ def masked_var(values: mx.array, mask: mx.array, unbiased: bool = True) -> mx.ar
     """Compute variance of tensor with masked values."""
     mean = masked_mean(values, mask)
     centered_values = values - mean
-    variance = masked_mean(centered_values ** 2, mask)
+    variance = masked_mean(centered_values**2, mask)
     if unbiased:
         mask_sum = mask.sum()
         if mask_sum == 0:
@@ -311,7 +309,7 @@ def convert_to_scalar(stats: Dict) -> Dict:
         # for tensorboard compatibility - arrays and tensors are ignored with tensorboard
         # therefore we convert single element tensors to scalars
         if (isinstance(v, mx.array) or isinstance(v, np.ndarray)) and (
-                len(v.shape) == 0 or (len(v.shape) == 1 and v.shape[0] == 1)
+            len(v.shape) == 0 or (len(v.shape) == 1 and v.shape[0] == 1)
         ):
             v = v.item()
         tensorboard_stats[k] = v
@@ -440,11 +438,7 @@ def save_model(save_dir: str, weights, tokenizer, config):
 
     shards = make_shards(weights, max_file_size_gibibyte=5)
     shards_count = len(shards)
-    shard_file_format = (
-        "model-{:05d}-of-{:05d}.safetensors"
-        if shards_count > 1
-        else "model.safetensors"
-    )
+    shard_file_format = "model-{:05d}-of-{:05d}.safetensors" if shards_count > 1 else "model.safetensors"
 
     for i, shard in enumerate(shards):
         shard_name = shard_file_format.format(i + 1, shards_count)
@@ -484,6 +478,7 @@ def load(path_or_hf_repo: str):
     model_args = model_args_class.from_dict(config)
     model = model_class(model_args)
     if quantization is not None:
+
         def class_predicate(p, m):
             # Handle custom per layer quantizations
             if p in config["quantization"]:
@@ -492,7 +487,7 @@ def load(path_or_hf_repo: str):
                 return False
             # Handle legacy models which may not have everything quantized
             return f"{p}.scales" in weights
-        
+
         nn.quantize(
             model,
             **quantization,
@@ -511,8 +506,8 @@ def generate_ids(model, input_ids, eos_token_id=100_000, temperature=0.0, max_to
     max_tokens -= prompt.shape[-1]  # consider prompt as part of total # of tokens
     tokens = []
     for token, n in zip(
-            model.generate(prompt, temperature),
-            range(max_tokens),
+        model.generate(prompt, temperature),
+        range(max_tokens),
     ):
         # if token == eos_token_id:
         #     break
@@ -552,10 +547,7 @@ def linear_to_lora_layers(
         num_lora_layers = num_layers
 
     if num_lora_layers > num_layers:
-        raise ValueError(
-            f"Requested {num_lora_layers} LoRA layers "
-            f"but the model only has {num_layers} layers."
-        )
+        raise ValueError(f"Requested {num_lora_layers} LoRA layers but the model only has {num_layers} layers.")
 
     def to_lora(layer):
         if isinstance(layer, (nn.Linear, nn.QuantizedLinear)):
@@ -565,9 +557,7 @@ def linear_to_lora_layers(
                 raise ValueError(f"{type(layer).__name__} doesn't support DoRA yet.")
             LoRALayer = LoRASwitchLinear
         else:
-            raise ValueError(
-                f"Can't convert layer of type {type(layer).__name__} to LoRA"
-            )
+            raise ValueError(f"Can't convert layer of type {type(layer).__name__} to LoRA")
 
         return LoRALayer.from_base(
             layer,
@@ -614,7 +604,7 @@ def linear_to_lora_layers(
     else:
         raise ValueError(f"Lora does not support {model.model_type}")
 
-    for l in model.model.layers[num_layers - num_lora_layers :]:
+    for l in model.model.layers[num_layers - num_lora_layers :]:  # noqa: E741
         lora_layers = [(k, to_lora(m)) for k, m in l.named_modules() if k in keys]
         l.update_modules(tree_unflatten(lora_layers))
 
@@ -626,7 +616,7 @@ def get_model_and_tokenizer(args_in, need_generate: bool = False, add_peft: bool
         model, tokenizer = mlx_lm_load_model(args_in.model)
         tokenizer = tokenizer._tokenizer  # Unwrap tokenizer to get base object
 
-    if not hasattr(model, 'value_head'):
+    if not hasattr(model, "value_head"):
         model.value_head = nn.Linear(model.args.hidden_size, 1)
 
     if args_in.quantize:
@@ -647,22 +637,18 @@ def get_model_and_tokenizer(args_in, need_generate: bool = False, add_peft: bool
         else:
             lora_parameters = {"rank": 16, "dropout": 0.1, "scale": 10.0}
             if need_generate:
-                linear_to_lora_layers(
-                    model, args_in.lora_layers, lora_parameters, use_dora=False
-                )
+                linear_to_lora_layers(model, args_in.lora_layers, lora_parameters, use_dora=False)
             else:
-                mlx_lm_linear_to_lora(
-                    model, args_in.lora_layers, lora_parameters, use_dora=False
-                )
+                mlx_lm_linear_to_lora(model, args_in.lora_layers, lora_parameters, use_dora=False)
 
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
         tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.padding_side = 'left'
+        tokenizer.padding_side = "left"
 
-    p = sum(v.size for _, v in tree_flatten(model.parameters())) / 10 ** 6
+    p = sum(v.size for _, v in tree_flatten(model.parameters())) / 10**6
     print(f"Total parameters {p:.3f}M")
-    p = sum(v.size for _, v in tree_flatten(model.trainable_parameters())) / 10 ** 6
+    p = sum(v.size for _, v in tree_flatten(model.trainable_parameters())) / 10**6
     print(f"Trainable parameters {p:.3f}M")
 
     return model, tokenizer
