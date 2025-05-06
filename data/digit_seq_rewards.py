@@ -123,6 +123,35 @@ def generate_synthetic_data(reward_function, num_samples=100, sequence_length_ra
     return synthetic_data
 
 
+def reward_against_ground_truth(model_outputs, ground_truths, match_type="exact"):
+    """
+    Compares model outputs to ground truth answers and returns a reward score for each pair.
+    match_type: 'exact' for exact string match, 'substring' for substring match, 'simple' for basic similarity.
+    Returns a list of rewards (1.0 for match, 0.0 for no match by default).
+    """
+    if isinstance(model_outputs, str):
+        model_outputs = [model_outputs]
+    if isinstance(ground_truths, str):
+        ground_truths = [ground_truths]
+    rewards = []
+    for output, truth in zip(model_outputs, ground_truths):
+        if match_type == "exact":
+            rewards.append(1.0 if output.strip() == truth.strip() else 0.0)
+        elif match_type == "substring":
+            rewards.append(1.0 if truth.strip() in output.strip() else 0.0)
+        elif match_type == "simple":
+            # Simple similarity: fraction of matching words
+            output_words = set(output.strip().split())
+            truth_words = set(truth.strip().split())
+            if not truth_words:
+                rewards.append(0.0)
+            else:
+                rewards.append(len(output_words & truth_words) / len(truth_words))
+        else:
+            rewards.append(0.0)
+    return rewards
+
+
 if __name__ == "__main__":
     reward_fn = RewardFunction(is_increasing=True, multiple_of=2)
     input_string = "4 -90 -90 -90 8 12 22 28 99"

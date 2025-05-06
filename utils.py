@@ -519,7 +519,12 @@ def generate_ids(model, input_ids, eos_token_id=100_000, temperature=0.0, max_to
         if len(token.shape) < 2:
             token = token[:, None]
         tokens.append(token)
-    return mx.concatenate(tokens, axis=1)  # .transpose()
+    if not tokens:
+        # Return an empty array with the correct batch dimension
+        return mx.zeros((prompt.shape[0], 0), dtype=prompt.dtype)
+    # Ensure all tokens are 2D and have the same batch size
+    tokens = [t if len(t.shape) == 2 else t[:, None] for t in tokens]
+    return mx.concatenate(tokens, axis=1)
 
 
 def linear_to_lora_layers(

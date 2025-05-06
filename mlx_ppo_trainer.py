@@ -187,11 +187,11 @@ class PPOTrainer:
             self,
             query_tensor: Union[mx.array, List[mx.array]],
             length_sampler: Callable = None,
-            batch_size: int = 4,
+            batch_size: int = 8,
             return_prompt: bool = True,
             generate_ref_response: bool = False,
             temperature: float = 0.0,
-            max_tokens: int = 24,
+            max_tokens: int = 1024,
             **generation_kwargs,
     ):
         """
@@ -217,6 +217,8 @@ class PPOTrainer:
         Returns:
             `mx.array`: A tensor of shape (`batch_size`, `gen_len`) containing response tokens.
         """
+        print("QUERY TENSOR: ", query_tensor)
+        print("QUERY TENSOR SHAPE: ", query_tensor.shape)
         if generate_ref_response:
             ref_model = self.model if self.is_peft_model else self.ref_model
         if isinstance(query_tensor, List):

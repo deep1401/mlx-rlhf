@@ -37,8 +37,8 @@ from utils import get_model_and_tokenizer
 
 from mlx.utils import tree_flatten
 from mlx_ppo_trainer import PPOTrainer
-from data.digit_seq_rewards import RewardFunction
-from data.data_utils import get_all_txts
+from data.digit_seq_rewards import RewardFunction, reward_against_ground_truth
+from data.data_utils import get_all_txts, load_custom_hf_dataset
 import utils
 
 from models.config import PPOConfig
@@ -75,6 +75,12 @@ def main(args_in, ppo_config_in):
     else:
         reward_function, reward_tokenizer, _ = utils.load(args_in.reward_model_dir)
 
+    # Load custom dataset if specified
+    if getattr(args_in, 'custom_hf_dataset', None):
+        custom_dataset = load_custom_hf_dataset(args_in.custom_hf_dataset)
+    else:
+        custom_dataset = None
+
     # We then define the arguments to pass to the `generate` function. These arguments
     # are passed to the `generate` function of the PPOTrainer, which is a wrapper around
     # the `generate` function of the trained model.
@@ -84,7 +90,7 @@ def main(args_in, ppo_config_in):
         # "top_p": 1.0,
         # "do_sample": False,
         "pad_token_id": tokenizer.eos_token_id,
-        "max_tokens": 24,
+        "max_tokens": 1024,
     }
 
     if args_in.me_chatbot:
@@ -94,9 +100,14 @@ def main(args_in, ppo_config_in):
     for epoch in range(args_in.num_steps):
         # TODO: Add a command-line arg for a prompt before each call?
         text_in = []
+        ground_truths = []
         for _ in range(ppo_config_in.batch_size):
-
-            if args_in.me_chatbot:
+            if custom_dataset is not None:
+                idx = random.randint(0, len(custom_dataset) - 1)
+                prompt, ground_truth = custom_dataset[idx]
+                text_in.append(prompt)
+                ground_truths.append(ground_truth)
+            elif args_in.me_chatbot:
                 text_in.append(random.choice(train_set)[0])
             else:
                 start_int = random.randint(0, 150) * 2
@@ -104,10 +115,10 @@ def main(args_in, ppo_config_in):
 
         batch = {
             'query': text_in,
-            # 'input_ids': mx.array(tokenizer.encode(text_in))
         }
         input_text = tokenizer.pad(tokenizer(text_in).data)['input_ids']
         query_tensors = mx.array(input_text)  # batch["input_ids"]
+
 
         # Get response from gpt2
         response_tensors, ref_response_tensors = ppo_trainer.generate(
@@ -117,7 +128,11 @@ def main(args_in, ppo_config_in):
         batch["response"] = tokenizer.batch_decode(np.array(response_tensors))
         batch["ref_response"] = tokenizer.batch_decode(np.array(ref_response_tensors))
 
-        if args_in.ground_truth_reward:
+        if custom_dataset is not None:
+            # Use ground truth reward function
+            scores = mx.array(reward_against_ground_truth(batch['response'], ground_truths, match_type="exact"))
+            ref_scores = mx.array(reward_against_ground_truth(batch['ref_response'], ground_truths, match_type="exact"))
+        elif args_in.ground_truth_reward:
             scores = mx.array(reward_function(batch['response'], negated=False))  # Should we omit query in the scoring?
             # scores = [x + np.random.randn() * 0.05 for x in scores]  # Noisify the ground truth reward signal
             ref_scores = mx.array(reward_function(batch['ref_response'], negated=False))
@@ -165,6 +180,7 @@ if __name__ == "__main__":
         me_chatbot: bool = field(default=False, metadata={'help': 'Set prompts as samples from my imessage history?'})
         num_steps: Optional[int] = field(default=5550, metadata={'help': 'How many PPO training iterations should we use?'})
         quantize: bool = field(default=False, metadata={'help': 'Should we quantize our model?'})
+        custom_hf_dataset: Optional[str] = field(default=None, metadata={"help": "Path to custom HuggingFace-style dataset (JSONL) with 'conversations' and 'chosen' fields."})
 
     parser = HfArgumentParser((ScriptArguments, PPOConfig))
     args, ppo_config = parser.parse_args_into_dataclasses()

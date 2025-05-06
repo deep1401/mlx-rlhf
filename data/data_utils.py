@@ -1,9 +1,15 @@
 import random
 from pathlib import Path
 import json
+import os
 from data.imessage_chat_data import get_all_txts
 from random import shuffle
 import argparse
+
+try:
+    from datasets import load_dataset
+except ImportError:
+    load_dataset = None
 
 
 class TuningDataset:
@@ -50,6 +56,45 @@ class PrefDataset:
 
     def __len__(self):
         return len(self._data)
+
+
+class CustomHFDataset:
+    """
+    Dataset loader for HuggingFace-style datasets with 'conversations' and 'chosen' fields.
+    Each item returns a tuple: (prompt, ground_truth)
+    Supports loading from local JSONL or HuggingFace Hub.
+    """
+    def __init__(self, path):
+        self._data = []
+        path_obj = Path(path)
+        if path_obj.exists():
+            with open(path, 'r') as fid:
+                self._data = json.load(fid)
+
+        else:
+            if load_dataset is None:
+                raise ImportError("Please install the 'datasets' library to load from HuggingFace Hub.")
+            # Try loading from HuggingFace Hub
+            ds = load_dataset(path, split="train")
+            for item in ds:
+                self._data.append(item)
+
+    def __getitem__(self, idx: int):
+        item = self._data[idx]
+        prompt = item["conversations"][0]["value"]
+        ground_truth = item["chosen"]["value"]
+        return prompt, ground_truth
+
+    def __len__(self):
+        return len(self._data)
+
+
+def load_custom_hf_dataset(path):
+    """
+    Loads a HuggingFace-style dataset with 'conversations' and 'chosen' fields.
+    Returns a CustomHFDataset instance.
+    """
+    return CustomHFDataset(Path(path))
 
 
 def load_datasets(train_args, tokenizer=None):
