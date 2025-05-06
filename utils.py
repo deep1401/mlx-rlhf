@@ -16,6 +16,7 @@ from mlx_lm.tuner.lora import LoRALinear, LoRASwitchLinear
 from mlx_lm.models.switch_layers import QuantizedSwitchLinear, SwitchLinear
 from mlx_lm.tuner.utils import linear_to_lora_layers as mlx_lm_linear_to_lora
 from mlx_lm.utils import load as mlx_lm_load_model
+from mlx_lm.utils import load_model
 from mlx_lm.utils import quantize_model
 
 from models.prompt_tuning import PromptTuning
@@ -483,11 +484,19 @@ def load(path_or_hf_repo: str):
     model_args = model_args_class.from_dict(config)
     model = model_class(model_args)
     if quantization is not None:
-        nn.QuantizedLinear.quantize_module(
+        def class_predicate(p, m):
+            # Handle custom per layer quantizations
+            if p in config["quantization"]:
+                return config["quantization"][p]
+            if not hasattr(m, "to_quantized"):
+                return False
+            # Handle legacy models which may not have everything quantized
+            return f"{p}.scales" in weights
+        
+        nn.quantize(
             model,
             **quantization,
-            linear_class_predicate=lambda m: isinstance(m, nn.Linear)
-                                             and m.weight.shape[0] != 8,
+            class_predicate=class_predicate,
         )
 
     model = model.load_weights(list(weights.items()), strict=False)
@@ -555,7 +564,7 @@ def linear_to_lora_layers(
                 f"Can't convert layer of type {type(layer).__name__} to LoRA"
             )
 
-        return LoRALayer.from_linear(
+        return LoRALayer.from_base(
             layer,
             r=config["rank"],
             scale=config["scale"],

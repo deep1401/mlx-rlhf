@@ -28,11 +28,13 @@ class ModelArgs(BaseModelArgs):
 
         if self.rope_scaling:
             required_keys = {"factor", "type"}
+            if "type" not in self.rope_scaling:
+                self.rope_scaling['type'] = self.rope_scaling.get("rope_type")
             if not all(key in self.rope_scaling for key in required_keys):
                 raise ValueError(f"rope_scaling must contain keys {required_keys}")
 
-            if self.rope_scaling["type"] != "linear":
-                raise ValueError("rope_scaling 'type' currently only supports 'linear'")
+            # if self.rope_scaling["type"] != "linear":
+            #     raise ValueError("rope_scaling 'type' currently only supports 'linear'")
 
 
 
@@ -55,16 +57,16 @@ class Attention(nn.Module):
         self.v_proj = nn.Linear(dim, n_kv_heads * head_dim, bias=False)
         self.o_proj = nn.Linear(n_heads * head_dim, dim, bias=False)
 
-        # rope_scale = (
-        #     1 / args.rope_scaling["factor"]
-        #     if args.rope_scaling is not None and args.rope_scaling["type"] == "linear"
-        #     else 1
-        # )
+        rope_scale = (
+            1 / args.rope_scaling["factor"]
+            if args.rope_scaling is not None and args.rope_scaling["type"] == "linear"
+            else 1
+        )
         self.rope = nn.RoPE(
             head_dim,
             traditional=args.rope_traditional,
             base=args.rope_theta,
-            # scale=rope_scale,
+            scale=rope_scale,
         )
 
     def __call__(
