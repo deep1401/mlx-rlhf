@@ -90,7 +90,7 @@ def main(args_in, ppo_config_in):
         # "top_p": 1.0,
         # "do_sample": False,
         "pad_token_id": tokenizer.eos_token_id,
-        "max_tokens": 1024,
+        "max_tokens": 256,
     }
 
     if args_in.me_chatbot:

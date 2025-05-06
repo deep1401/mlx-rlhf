@@ -217,8 +217,6 @@ class PPOTrainer:
         Returns:
             `mx.array`: A tensor of shape (`batch_size`, `gen_len`) containing response tokens.
         """
-        print("QUERY TENSOR: ", query_tensor)
-        print("QUERY TENSOR SHAPE: ", query_tensor.shape)
         if generate_ref_response:
             ref_model = self.model if self.is_peft_model else self.ref_model
         if isinstance(query_tensor, List):
