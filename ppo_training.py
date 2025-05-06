@@ -147,7 +147,7 @@ def main(args_in, ppo_config_in):
         batch["ref_rewards"] = ref_scores
 
         # Run PPO step
-        if len(rewards.shape) > 0 and rewards.shape[0] > 1:
+        if len(rewards.shape) > 0 and rewards.shape[0] >= 1:
             ppo_trainer.config.batch_size = rewards.shape[0]
             stats = ppo_trainer.step(query_tensors, response_tensors, rewards)
             ppo_trainer.log_stats(stats, batch, rewards,
